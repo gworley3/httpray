@@ -16,6 +16,11 @@ class HTTPrayTest < MiniTest::Unit::TestCase
       assert_equal "HTTP/1.1 200 OK\r\n", socket.gets
     end
   end
+  def test_secure_request_timesout_with_short_timeout
+    assert_raises HTTPray::Timeout do
+      HTTPray.request("GET", "https://httpbin.org/status/200", {}, "", 0)
+    end
+  end
   def test_secure_request_sends
     HTTPray.request("GET", "https://httpbin.org/get")
     assert true

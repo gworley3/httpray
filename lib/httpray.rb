@@ -20,18 +20,15 @@ module HTTPray
     socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
     socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
 
+    expire_time = Time.now + timeout
     begin
+      raise Timeout if Time.now > expire_time
       socket.connect_nonblock(socket_address)
-    rescue Errno::EINPROGRESS
-      if IO.select(nil, [socket], [socket], timeout)
-        begin
-          socket.connect_nonblock(socket_address)
-        rescue Errno::EISCONN
-          # connected
-        end
-      else
-        raise Timeout
-      end
+    rescue IO::WaitReadable, IO::WaitWritable
+      select_timeout = expire_time - Time.now
+      select_timeout = 0 if select_timeout < 0
+      IO.select([socket], [socket], [socket], select_timeout)
+      retry
     end
 
     original_socket = socket
@@ -40,7 +37,15 @@ module HTTPray
       socket = OpenSSL::SSL::SSLSocket.new(socket, ssl_context)
       socket.hostname = uri.host
       socket.sync_close = true
-      socket.connect
+      begin
+        raise Timeout if Time.now > expire_time
+        socket.connect_nonblock
+      rescue IO::WaitReadable, IO::WaitWritable
+        select_timeout = expire_time - Time.now
+        select_timeout = 0 if select_timeout < 0
+        IO.select([socket.io], [socket.io], [socket.io], select_timeout)
+        retry
+      end
     end
 
     headers = DEFAULT_HEADERS.merge(headers).merge(
@@ -48,14 +53,12 @@ module HTTPray
       "Content-Length" => body.bytesize)
 
     if IO.select(nil, [socket], [socket], 1)
-      socket.puts "#{method} #{uri.request_uri} HTTP/1.0\r\n"
+      socket.write "#{method} #{uri.request_uri} HTTP/1.0\r\n"
       headers.each do |header, value|
-        socket.puts "#{header}: #{value}\r\n"
+        socket.write "#{header}: #{value}\r\n"
       end
-      socket.puts "\r\n"
-      socket.puts body
-
-      yield(socket) if block_given?
+      socket.write "\r\n"
+      socket.write body
     else
       raise Timeout
     end
