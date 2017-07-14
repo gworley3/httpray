@@ -12,7 +12,7 @@ module HTTPray
     "Accept" => "*/*"
   }.freeze
 
-  def self.request2!(method, uri, headers = {}, body = "", timeout = 1, ssl_context = nil)
+  def self.request2!(method, uri, headers = {}, body = nil, timeout = 1, ssl_context = nil)
     uri = URI.parse(uri) unless URI === uri
     address = Socket.getaddrinfo(uri.host, nil, Socket::AF_INET).first[3]
     socket_address = Socket.pack_sockaddr_in(uri.port, address)
@@ -48,20 +48,15 @@ module HTTPray
       end
     end
 
-    headers = DEFAULT_HEADERS.merge(headers).merge(
-      "Host" => uri.host,
-      "Content-Length" => body.bytesize)
+    headers = DEFAULT_HEADERS.merge(headers).merge("Host" => uri.host)
+    headers["Content-Length"] = body.bytesize if body
 
-    if IO.select(nil, [socket], [socket], 1)
-      socket.write "#{method} #{uri.request_uri} HTTP/1.0\r\n"
-      headers.each do |header, value|
-        socket.write "#{header}: #{value}\r\n"
-      end
-      socket.write "\r\n"
-      socket.write body
-    else
-      raise Timeout
+    socket.write_nonblock "#{method} #{uri.request_uri} HTTP/1.0\r\n"
+    headers.each do |header, value|
+      socket.write_nonblock "#{header}: #{value}\r\n"
     end
+    socket.write_nonblock "\r\n"
+    socket.write_nonblock body if body
     return socket, original_socket
   end
 
