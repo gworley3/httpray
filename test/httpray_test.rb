@@ -2,6 +2,11 @@ require 'minitest/autorun'
 require 'lib/httpray'
 
 class HTTPrayTest < MiniTest::Unit::TestCase
+  def test_request_timesout_with_short_timeout
+    assert_raises HTTPray::Timeout do
+      HTTPray.request("GET", "httppppp://httpbin.org/status/200", {}, nil, 0)
+    end
+  end
   def test_request_timesout_with_bad_address
     assert_raises HTTPray::Timeout do
       HTTPray.request("GET", "httppppp://httpbin.org/status/200")
@@ -18,7 +23,7 @@ class HTTPrayTest < MiniTest::Unit::TestCase
   end
   def test_secure_request_timesout_with_short_timeout
     assert_raises HTTPray::Timeout do
-      HTTPray.request("GET", "https://httpbin.org/status/200", {}, "", 0)
+      HTTPray.request("GET", "https://httpbin.org/status/200", {}, nil, 0)
     end
   end
   def test_secure_request_sends

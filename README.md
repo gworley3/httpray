@@ -20,7 +20,7 @@ gem "httpray"
 ```ruby
 require 'httpray'
 
-# def HTTParty.request!(method, uri, headers = {}, body = "", timeout = 1, ssl_context = nil)
+# def HTTParty.request!(method, uri, headers = {}, body = nil, timeout = 1, ssl_context = nil)
 
 # send an HTTP request and don't listen for the response
 HTTPray.request(
