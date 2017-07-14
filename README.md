@@ -9,13 +9,13 @@ Great for use with sending data to HTTP endpoints for which you are willing to a
 
 ## Install
 
-```
+```ruby
 gem "httpray"
 ```
 
 ## Use
 
-```
+```ruby
 require 'httpray'
 
 # def HTTParty.request!(method, uri, headers = {}, body = "", timeout = 1, ssl_context = nil)
@@ -51,7 +51,7 @@ If you want it to be easier to use, feel free to submit pull requests. As long a
 
 There are some tests that exercise the code paths. You can run them with:
 
-```
+```bash
 ruby -I . test/httparty_test.rb
 ```
 
