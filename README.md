@@ -1,7 +1,7 @@
 # httpray
 Non-blocking HTTP library for Ruby
 
-[![Gem Version](https://badge.fury.io/rb/HTTPray.svg)](https://badge.fury.io/rb/HTTPray)
+[![Gem Version](https://badge.fury.io/rb/httpray.svg)](https://badge.fury.io/rb/httpray)
 
 Started out the same as the [fire-and-forget](https://github.com/mattetti/fire-and-forget) gem but with a more exposed interface, TLS support, and a better name. Added ideas from [tcp_timeout](https://github.com/lann/tcp-timeout-ruby) and accidentally ended up creating a light-weight, non-blocking HTTP client.
 
