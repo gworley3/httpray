@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'httpray/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "HTTPray"
+  spec.name          = "httpray"
   spec.version       = HTTPray::VERSION
   spec.authors       = ["G Gordon Worley III"]
   spec.email         = ["gworley3@gmail.com"]
