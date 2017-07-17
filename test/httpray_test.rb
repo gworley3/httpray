@@ -1,7 +1,9 @@
 require 'minitest/autorun'
 require 'lib/httpray'
+require 'benchmark'
+require 'net/http'
 
-class HTTPrayTest < MiniTest::Unit::TestCase
+class HTTPrayTest < MiniTest::Test
   def test_request_timesout_with_short_timeout
     assert_raises HTTPray::Timeout do
       HTTPray.request("GET", "httppppp://httpbin.org/status/200", {}, nil, 0)
@@ -42,9 +44,10 @@ class HTTPrayTest < MiniTest::Unit::TestCase
       end
   end
   def test_original_socket_closed_with_ssl
-    socket, original_socket = HTTPray.request2!(
-      "GET",
-      "https://httpbin.org/delay/10")
+    uri = URI.parse("https://httpbin.org/get")
+    ark = HTTPray::Connection.new(uri.host, uri.port, 1, OpenSSL::SSL::SSLContext.new)
+    ark.socket.close
+    socket, original_socket = ark.connect2
     refute_same socket, original_socket
     refute socket.closed?
     refute original_socket.closed?
@@ -53,14 +56,47 @@ class HTTPrayTest < MiniTest::Unit::TestCase
     assert original_socket.closed?
   end
   def test_original_socket_closed_without_ssl
-    socket, original_socket = HTTPray.request2!(
-      "GET",
-      "http://httpbin.org/delay/10")
+    uri = URI.parse("http://httpbin.org/get")
+    ark = HTTPray::Connection.new(uri.host, uri.port, 1, nil)
+    ark.socket.close
+    socket, original_socket = ark.connect2
     assert_same socket, original_socket
     refute socket.closed?
     refute original_socket.closed?
     socket.close
     assert socket.closed?
     assert original_socket.closed?
+  end
+  def test_faster_than_net_http
+    uri = URI.parse("http://httpbin.org/delay/1")
+    net_http_time = Benchmark.realtime do
+      2.times { Net::HTTP.get(uri) }
+    end
+    httpray_time = Benchmark.realtime do
+      2.times { HTTPray.request("GET", uri) }
+    end
+    assert httpray_time < net_http_time
+  end
+  def test_persistent_connection_faster_than_ephemeral
+    uri = URI.parse("http://httpbin.org/delay/1")
+    persistent_time = Benchmark.realtime do
+      ark = HTTPray::Connection.new(uri.host, uri.port)
+      3.times { ark.request("GET", uri) }
+    end
+    ephemeral_time = Benchmark.realtime do
+      3.times { HTTPray.request("GET", uri) }
+    end
+    assert persistent_time < ephemeral_time
+  end
+  def test_reconnects_on_request_if_necessary
+    uri = URI.parse("http://httpbin.org/get")
+    ark = HTTPray::Connection.new(uri.host, uri.port, 1, nil)
+    original_socket = ark.socket
+    ark.request("GET", uri)
+    assert_same original_socket, ark.socket
+    ark.socket.close
+    assert original_socket.closed?
+    ark.request("GET", uri)
+    refute_same original_socket, ark.socket
   end
 end
