@@ -6,6 +6,7 @@ require_relative 'httpray/version'
 
 module HTTPray
   class Timeout < StandardError; end
+  class CircuitBreakerError < StandardError; end
 
   DEFAULT_HEADERS = {
     "User-Agent" => "HTTPray #{VERSION}",
@@ -14,12 +15,14 @@ module HTTPray
   }.freeze
 
   class Connection
-    def initialize(host, port, timeout = 1, ssl_context = nil, retry_count = 1)
+    def initialize(host, port, timeout = 1, ssl_context = nil, retry_count = 1, retry_circuit_breaker_interval = 10)
       @host = host
       @port = port
       @timeout = timeout
       @ssl_context = ssl_context
       @retry_count = retry_count
+      @retry_circuit_breaker_interval = retry_circuit_breaker_interval
+      @next_retry_time = Time.now - @retry_circuit_breaker_interval
       @socket = connect
     end
 
@@ -29,12 +32,13 @@ module HTTPray
       @socket
     end
 
+    def reconnect
+      @socket = connect unless @socket && !socket.closed?
+    end
+
     def request!(method, uri, headers = {}, body = nil)
       tries ||= 0
-      begin
-        IO.select([@socket], [@socket], [@socket], @timeout) if @socket
-      rescue; end
-      @socket = connect unless @socket && !@socket.closed?
+      reconnect
       socket = @socket
       uri = URI.parse(uri) unless URI === uri
 
@@ -48,11 +52,19 @@ module HTTPray
       socket.write_nonblock "\r\n"
       socket.write_nonblock body if body
       socket
-    rescue
-      @socket.close
-      if tries < @retry_count
-        tries += 1
-        retry
+    rescue => error
+      @socket.close unless @socket.closed?
+      now = Time.now
+      if now > @next_retry_time
+        if tries < @retry_count 
+          tries += 1
+          retry
+        else
+          @next_retry_time = now + @retry_circuit_breaker_interval
+          raise error
+        end
+      else
+        raise HTTPray::CircuitBreakerError
       end
     end
 

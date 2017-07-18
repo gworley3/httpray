@@ -43,7 +43,13 @@ socket.close
 # use a persistent connection to keep the party rolling
 # will automatically reconnect if connection is lost
 uri = URI.parse("https://your.diety/pray")
-ark = HTTPray::Connection.new(uri.host, uri.port, 1, OpenSSL::SSL::SSLContext.new)
+ark = HTTPray::Connection.new(
+  uri.host,
+  uri.port,
+  1, #timeout
+  OpenSSL::SSL::SSLContext.new, #ssl context
+  1, #retries on error
+  10) #seconds to wait after all retries failed before trying again on a subsequent request
 ark.request("POST", uri, 
   {"Content-Type" => "application/prayer"},
   "Why did it have to be snakes?")
@@ -58,7 +64,7 @@ ark.request("POST", uri,
 
 HTTPray has minimal convenience and sanitization features because I didn't need them. All that it does is fill in the Host, User-Agent, Accept, and Content-Length headers for you. The body must be a string, so convert it yourself first. The URI can be a `URI` or a `String` that will go through `URI.parse`. You're welcome.
 
-If you're using `Connection` with TLS you need to provide an `OpenSSL::SSL::SSLContext` when creating the connection. `HTTPray.request!` is more forgiving and if you don't give it one it will create it for you if needed.
+If you're using `Connection` with TLS you need to provide an `OpenSSL::SSL::SSLContext` when creating the connection. `HTTPray.request!` is more forgiving and if you don't give it one it will create it for you if needed. `Connection` also has some fancy retry and circuit breaker logic so you can assume your request always writes even if it doesn't without major performance impacts.
 
 Timeout support does not extend to the response since you just get back a `Socket`. You're own your own for how you want to handle that.
 

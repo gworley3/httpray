@@ -106,4 +106,19 @@ class HTTPrayTest < MiniTest::Test
       ark.request("GET", uri, {"Connection" => ""})
     end
   end
+  def test_retries_stopped_by_circuit_breaker
+    uri = URI.parse("http://httpbin.org/deny")
+    ark = HTTPray::Connection.new(uri.host, uri.port, 1, nil, 0, 2)
+    # force retries to expire
+    ark.socket.stub(:write_nonblock, lambda { |*args| raise "Broken pipe" }) do
+      assert_raises RuntimeError do; ark.request("GET", uri, {"Connection" => ""}); end
+    end
+    ark.stub(:reconnect, ark.socket) do #prevent reconnect of closed socket from previous error
+      ark.socket.stub(:write_nonblock, lambda { |*args| raise "Broken pipe" }) do
+        assert_raises HTTPray::CircuitBreakerError do; ark.request("GET", uri, {"Connection" => ""}); end
+      end
+    end
+    sleep(2)
+    ark.request("GET", uri, {"Connection" => ""})
+  end
 end

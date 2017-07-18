@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    HTTPray (1.0.0)
+    httpray (1.1.1)
 
 GEM
   remote: https://rubygems.org/
@@ -11,8 +11,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  HTTPray!
-  bundler (>= 1.2)
+  httpray!
 
 BUNDLED WITH
    1.13.6
