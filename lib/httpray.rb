@@ -9,15 +9,17 @@ module HTTPray
 
   DEFAULT_HEADERS = {
     "User-Agent" => "HTTPray #{VERSION}",
-    "Accept" => "*/*"
+    "Accept" => "*/*",
+    "Connection" => "keep-alive"
   }.freeze
 
   class Connection
-    def initialize(host, port, timeout = 1, ssl_context = nil)
+    def initialize(host, port, timeout = 1, ssl_context = nil, retry_count = 1)
       @host = host
       @port = port
       @timeout = timeout
       @ssl_context = ssl_context
+      @retry_count = retry_count
       @socket = connect
     end
 
@@ -28,6 +30,7 @@ module HTTPray
     end
 
     def request!(method, uri, headers = {}, body = nil)
+      tries ||= 0
       begin
         IO.select([@socket], [@socket], [@socket], @timeout) if @socket
       rescue; end
@@ -45,6 +48,12 @@ module HTTPray
       socket.write_nonblock "\r\n"
       socket.write_nonblock body if body
       socket
+    rescue
+      @socket.close
+      if tries < @retry_count
+        tries += 1
+        retry
+      end
     end
 
     def request(*args)
@@ -101,7 +110,7 @@ module HTTPray
     ssl_context = nil
     ssl_context = OpenSSL::SSL::SSLContext.new if uri.scheme == "https"
     ark = Connection.new(uri.host, uri.port, timeout, ssl_context)
-    ark.request!(method, uri, headers, body)
+    ark.request!(method, uri, {"Connection" => ""}.merge(headers), body)
   end
 
   def self.request(*args)

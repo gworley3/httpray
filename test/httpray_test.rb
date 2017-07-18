@@ -99,4 +99,11 @@ class HTTPrayTest < MiniTest::Test
     ark.request("GET", uri)
     refute_same original_socket, ark.socket
   end
+  def test_retries_on_random_errors
+    uri = URI.parse("http://httpbin.org/deny")
+    ark = HTTPray::Connection.new(uri.host, uri.port, 1, nil)
+    ark.socket.stub(:write_nonblock, lambda { |*args| raise "Broken pipe" }) do
+      ark.request("GET", uri, {"Connection" => ""})
+    end
+  end
 end
