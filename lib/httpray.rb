@@ -109,7 +109,7 @@ module HTTPray
     uri = URI.parse(uri) unless URI === uri
     ssl_context = nil
     ssl_context = OpenSSL::SSL::SSLContext.new if uri.scheme == "https"
-    ark = Connection.new(uri.host, uri.port, timeout, ssl_context)
+    ark = Connection.new(uri.host, uri.port, timeout, ssl_context, 0)
     ark.request!(method, uri, {"Connection" => ""}.merge(headers), body)
   end
 
