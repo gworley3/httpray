@@ -3,7 +3,7 @@ require 'lib/httpray'
 require 'benchmark'
 require 'net/http'
 
-class HTTPrayTest < MiniTest::Test
+class HTTPrayTest < MiniTest::Unit::TestCase
   def test_request_timesout_with_short_timeout
     assert_raises HTTPray::Timeout do
       HTTPray.request("GET", "httppppp://httpbin.org/status/200", {}, nil, 0)
