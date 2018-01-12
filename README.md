@@ -66,7 +66,7 @@ HTTPray has minimal convenience and sanitization features because I didn't need 
 
 If you're using `Connection` with TLS you need to provide an `OpenSSL::SSL::SSLContext` when creating the connection. `HTTPray.request!` is more forgiving and if you don't give it one it will create it for you if needed. `Connection` also has some fancy retry and circuit breaker logic so you can assume your request always writes even if it doesn't without major performance impacts.
 
-Timeout support does not extend to the response since you just get back a `Socket`. You're own your own for how you want to handle that.
+Timeout support does not extend to the response since you just get back a `Socket`. You're on your own for how you want to handle that.
 
 If you want it to be easier to use, feel free to submit pull requests. As long as you don't break existing functionality I will probably accept them.
 
@@ -75,7 +75,7 @@ If you want it to be easier to use, feel free to submit pull requests. As long a
 There are some tests that exercise the code paths. You can run them with:
 
 ```bash
-ruby -I . test/httparty_test.rb
+ruby -I . test/httpray_test.rb
 ```
 
 Unfortunately they have to hit real network endpoints, so they won't work without a network.
