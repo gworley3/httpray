@@ -88,7 +88,7 @@ module HTTPray
         socket.connect_nonblock(socket_address)
       rescue Errno::EISCONN
         nil #continue
-      rescue IO::WaitReadable, IO::WaitWritable
+      rescue IO::WaitReadable, IO::WaitWritable, Errno::EADDRNOTAVAIL
         select_timeout = expire_time - Time.now
         select_timeout = 0 if select_timeout < 0
         IO.select([socket], [socket], [socket], select_timeout)
